@@ -163,3 +163,32 @@ fn github_works() {
 "#]])
         .run();
 }
+
+#[cargo_test(public_network_test)]
+fn fail_to_find_rev() {
+    // Check that an https connection to github.com works.
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2021"
+
+                [dependencies]
+                utf8-ranges = { git = "https://github.com/BurntSushi/utf8-ranges", rev = "11111b376b93484341c68fbca3ca110ae5cd2708" }
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file("src/main.rs", "")
+        .build();
+
+    p.cargo("fetch")
+        .with_stderr_data(str![[r#"
+[UPDATING] git repository `https://github.com/rust-lang/bitflags.git`
+[LOCKING] 1 package to latest compatible version
+
+"#]])
+        .run();
+}

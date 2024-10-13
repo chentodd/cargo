@@ -1007,7 +1007,7 @@ pub fn fetch(
     }
 
     if let Some(true) = gctx.net_config()?.git_fetch_with_cli {
-        return fetch_with_cli(repo, remote_url, &refspecs, tags, gctx);
+        return fetch_with_cli(repo, remote_url, &refspecs, tags, gctx).with_context(|| format!("failed to fetch {refspecs:?} from github: {remote_url}"));
     }
 
     if gctx.cli_unstable().gitoxide.map_or(false, |git| git.fetch) {
@@ -1107,7 +1107,7 @@ pub fn fetch(
         if repo_reinitialized.load(Ordering::Relaxed) {
             *git2_repo = git2::Repository::open(git2_repo.path())?;
         }
-        res
+        res.with_context(|| format!("failed to fetch {refspecs:?} from github: {remote_url}"))
     } else {
         debug!("doing a fetch for {remote_url}");
         let git_config = git2::Config::open_default()?;
@@ -1153,7 +1153,8 @@ pub fn fetch(
                     }
                 }
 
-                return Err(err.into());
+                let err: CargoResult<()> = Err(err.into());
+                return err.with_context(|| format!("failed to fetch {refspecs:?} from github: {remote_url}"));
             }
             Ok(())
         })
